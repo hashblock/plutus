@@ -2,42 +2,51 @@
 {-# LANGUAGE DerivingVia           #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE NamedFieldPuns        #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-| The UTXO state, kept in memory by the chain index.
 -}
 module Plutus.ChainIndex.UtxoState(
     UtxoState(..)
+    , usTxUtxoBalance
+    , usTip
     , TxUtxoBalance(..)
+    , tubUnspentOutputs
+    , tubUnmatchedSpentInputs
     , UtxoIndex
+    , fromBlock
     , fromTx
+    , isUnspentOutput
+    , tip
+    , unspentOutputs
     ) where
 
+import           Control.Lens            (makeLenses, view)
 import           Data.FingerTree         (FingerTree, Measured (..))
+import qualified Data.FingerTree         as FT
 import           Data.Monoid             (Last (..))
 import           Data.Semigroup.Generic  (GenericSemigroupMonoid (..))
 import           Data.Set                (Set)
 import qualified Data.Set                as Set
 import           GHC.Generics            (Generic)
-import           Ledger                  (Slot, TxIn (txInRef), TxOutRef (..))
-import           Plutus.ChainIndex.Tx    (ChainIndexTx (..))
-import           Plutus.ChainIndex.Types (BlockId)
-
-type UtxoIndex = FingerTree UtxoState UtxoState
-instance Measured UtxoState UtxoState where
-    measure = id
+import           Ledger                  (TxIn (txInRef), TxOutRef (..))
+import           Plutus.ChainIndex.Tx    (ChainIndexTx (..), txOutRefs)
+import           Plutus.ChainIndex.Types (Tip)
 
 -- | The effect of a transaction (or a number of them) on the utxo set.
 data TxUtxoBalance =
     TxUtxoBalance
-        { tubUnspentOutputs       :: Set TxOutRef -- ^ Outputs newly added by the transaction(s)
-        , tubUnmatchedSpentInputs :: Set TxOutRef -- ^ Outputs spent by the transaction(s)
+        { _tubUnspentOutputs       :: Set TxOutRef -- ^ Outputs newly added by the transaction(s)
+        , _tubUnmatchedSpentInputs :: Set TxOutRef -- ^ Outputs spent by the transaction(s)
         }
         deriving stock (Eq, Show, Generic)
+
+makeLenses ''TxUtxoBalance
 
 instance Semigroup TxUtxoBalance where
     l <> r =
         TxUtxoBalance
-            { tubUnspentOutputs       = tubUnspentOutputs r <> (tubUnspentOutputs l `Set.difference` tubUnmatchedSpentInputs r)
-            , tubUnmatchedSpentInputs = (tubUnmatchedSpentInputs r `Set.difference` tubUnspentOutputs l) <> tubUnmatchedSpentInputs l
+            { _tubUnspentOutputs       = _tubUnspentOutputs r <> (_tubUnspentOutputs l `Set.difference` _tubUnmatchedSpentInputs r)
+            , _tubUnmatchedSpentInputs = (_tubUnmatchedSpentInputs r `Set.difference` _tubUnspentOutputs l) <> _tubUnmatchedSpentInputs l
             }
 
 instance Monoid TxUtxoBalance where
@@ -48,15 +57,41 @@ instance Monoid TxUtxoBalance where
 --   on disk. This is OK because we don't need to validate transactions when they come in.
 data UtxoState =
     UtxoState
-        { usTxUtxoBalance :: TxUtxoBalance
-        , usSlot          :: Last (Slot, Maybe BlockId) -- ^ Last slot that we have seen + the block ID (if any)
+        { _usTxUtxoBalance :: TxUtxoBalance
+        , _usTip           :: Last Tip -- ^ Tip of our chain sync client
         }
         deriving stock (Eq, Show, Generic)
         deriving (Semigroup, Monoid) via (GenericSemigroupMonoid UtxoState)
 
+makeLenses ''UtxoState
+
 fromTx :: ChainIndexTx -> TxUtxoBalance
-fromTx ChainIndexTx{citxId, citxInputs, citxOutputs} =
+fromTx tx@ChainIndexTx{_citxInputs} =
     TxUtxoBalance
-        { tubUnspentOutputs = Set.fromList $ take (length citxOutputs) $ fmap (TxOutRef citxId) [0..]
-        , tubUnmatchedSpentInputs = Set.mapMonotonic txInRef citxInputs
+        { _tubUnspentOutputs = Set.fromList $ fmap snd $ txOutRefs tx
+        , _tubUnmatchedSpentInputs = Set.mapMonotonic txInRef _citxInputs
         }
+
+type UtxoIndex = FingerTree UtxoState UtxoState
+instance Measured UtxoState UtxoState where
+    measure = id
+
+-- | Whether a 'TxOutRef' is a member of the UTXO set (ie. unspent)
+isUnspentOutput :: TxOutRef -> UtxoState -> Bool
+isUnspentOutput r = Set.member r . view (usTxUtxoBalance . tubUnspentOutputs)
+
+tip :: UtxoState -> Maybe Tip
+tip = getLast . view usTip
+
+-- | The UTXO set
+unspentOutputs :: UtxoState -> Set TxOutRef
+unspentOutputs = view (usTxUtxoBalance . tubUnspentOutputs)
+
+-- | 'UtxoIndex' for a single block
+fromBlock :: Tip -> [ChainIndexTx] -> UtxoIndex
+fromBlock tip transactions =
+    FT.singleton
+    $ UtxoState
+            { _usTxUtxoBalance = foldMap fromTx transactions
+            , _usTip           = Last (Just tip)
+            }

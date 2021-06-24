@@ -2,58 +2,77 @@
 {-# LANGUAGE LambdaCase      #-}
 {-# LANGUAGE NamedFieldPuns  #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-| The chain index' version of a transaction
 -}
 module Plutus.ChainIndex.Tx(
     ChainIndexTx(..)
     , fromOnChainTx
+    , txOutRefs
+    -- ** Lenses
+    , citxInputs
+    , citxOutputs
+    , citxValidRange
+    , citxData
+    , citxRedeemers
+    , citxMintingPolicies
+    , citxValidators
+    , citxTxId
     ) where
 
+import           Control.Lens (makeLenses)
 import           Data.Map     (Map)
 import qualified Data.Map     as Map
 import           Data.Set     (Set)
 import qualified Data.Set     as Set
 import           GHC.Generics (Generic)
 import           Ledger       (Datum, DatumHash, MintingPolicy, MintingPolicyHash, OnChainTx (..), Redeemer (..),
-                               RedeemerHash, SlotRange, Tx (..), TxId, TxIn (txInType), TxInType (..), TxOut, Validator,
-                               ValidatorHash, datumHash, mintingPolicyHash, redeemerHash, txId, validatorHash)
+                               RedeemerHash, SlotRange, Tx (..), TxId, TxIn (txInType), TxInType (..), TxOut,
+                               TxOutRef (..), Validator, ValidatorHash, datumHash, mintingPolicyHash, redeemerHash,
+                               txId, validatorHash)
 
 data ChainIndexTx = ChainIndexTx {
-    citxId              :: TxId,
-    citxInputs          :: Set TxIn,
-    citxOutputs         :: [TxOut],
-    citxValidRange      :: !SlotRange,
-    citxData            :: Map DatumHash Datum,
-    citxRedeemers       :: Map RedeemerHash Redeemer,
-    citxMintingPolicies :: Map MintingPolicyHash MintingPolicy,
-    citxValidators      :: Map ValidatorHash Validator
+    _citxTxId            :: TxId,
+    _citxInputs          :: Set TxIn,
+    _citxOutputs         :: [TxOut],
+    _citxValidRange      :: !SlotRange,
+    _citxData            :: Map DatumHash Datum,
+    _citxRedeemers       :: Map RedeemerHash Redeemer,
+    _citxMintingPolicies :: Map MintingPolicyHash MintingPolicy,
+    _citxValidators      :: Map ValidatorHash Validator
     } deriving (Show, Eq, Generic)
+
+makeLenses ''ChainIndexTx
+
+txOutRefs :: ChainIndexTx -> [(TxOut, TxOutRef)]
+txOutRefs ChainIndexTx{_citxTxId, _citxOutputs} =
+    map (\(output, idx) -> (output, TxOutRef _citxTxId idx)) $ zip _citxOutputs [0..]
 
 fromOnChainTx :: OnChainTx -> ChainIndexTx
 fromOnChainTx = \case
     Valid tx@Tx{txInputs, txOutputs, txValidRange, txData, txMintScripts} ->
         let (validatorHashes, otherDataHashes, redeemers) = validators txInputs in
         ChainIndexTx
-            { citxId = txId tx
-            , citxInputs = txInputs
-            , citxOutputs = txOutputs
-            , citxValidRange = txValidRange
-            , citxData = txData <> otherDataHashes
-            , citxRedeemers = redeemers
-            , citxMintingPolicies = mintingPolicies txMintScripts
-            , citxValidators = validatorHashes
+            { _citxTxId = txId tx
+            , _citxInputs = txInputs
+            , _citxOutputs = txOutputs
+            , _citxValidRange = txValidRange
+            , _citxData = txData <> otherDataHashes
+            , _citxRedeemers = redeemers
+            , _citxMintingPolicies = mintingPolicies txMintScripts
+            , _citxValidators = validatorHashes
             }
     Invalid tx@Tx{txCollateral, txValidRange, txData, txInputs, txMintScripts} ->
         let (validatorHashes, otherDataHashes, redeemers) = validators txInputs in
         ChainIndexTx
-            { citxId = txId tx
-            , citxInputs = txCollateral
-            , citxOutputs = mempty
-            , citxValidRange = txValidRange
-            , citxData = txData <> otherDataHashes
-            , citxRedeemers = redeemers
-            , citxMintingPolicies = mintingPolicies txMintScripts
-            , citxValidators = validatorHashes
+            { _citxTxId = txId tx
+            , _citxInputs = txCollateral
+            , _citxOutputs = mempty
+            , _citxValidRange = txValidRange
+            , _citxData = txData <> otherDataHashes
+            , _citxRedeemers = redeemers
+            , _citxMintingPolicies = mintingPolicies txMintScripts
+            , _citxValidators = validatorHashes
             }
 
 mintingPolicies :: Set MintingPolicy -> Map MintingPolicyHash MintingPolicy
