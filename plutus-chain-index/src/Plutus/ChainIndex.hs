@@ -5,6 +5,7 @@ module Plutus.ChainIndex(
     module Export
     ) where
 
+import           Plutus.ChainIndex.Control   as Export
 import           Plutus.ChainIndex.DiskState as Export
 import           Plutus.ChainIndex.Query     as Export
 import           Plutus.ChainIndex.Tx        as Export

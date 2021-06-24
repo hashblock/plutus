@@ -1,12 +1,14 @@
 {-# LANGUAGE DerivingStrategies    #-}
 {-# LANGUAGE DerivingVia           #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns        #-}
 {-| The UTXO state, kept in memory by the chain index.
 -}
 module Plutus.ChainIndex.UtxoState(
     UtxoState(..)
     , TxUtxoBalance(..)
     , UtxoIndex
+    , fromTx
     ) where
 
 import           Data.FingerTree         (FingerTree, Measured (..))
@@ -15,7 +17,8 @@ import           Data.Semigroup.Generic  (GenericSemigroupMonoid (..))
 import           Data.Set                (Set)
 import qualified Data.Set                as Set
 import           GHC.Generics            (Generic)
-import           Ledger                  (Slot, TxOutRef)
+import           Ledger                  (Slot, TxIn (txInRef), TxOutRef (..))
+import           Plutus.ChainIndex.Tx    (ChainIndexTx (..))
 import           Plutus.ChainIndex.Types (BlockId)
 
 type UtxoIndex = FingerTree UtxoState UtxoState
@@ -50,3 +53,10 @@ data UtxoState =
         }
         deriving stock (Eq, Show, Generic)
         deriving (Semigroup, Monoid) via (GenericSemigroupMonoid UtxoState)
+
+fromTx :: ChainIndexTx -> TxUtxoBalance
+fromTx ChainIndexTx{citxId, citxInputs, citxOutputs} =
+    TxUtxoBalance
+        { tubUnspentOutputs = Set.fromList $ take (length citxOutputs) $ fmap (TxOutRef citxId) [0..]
+        , tubUnmatchedSpentInputs = Set.mapMonotonic txInRef citxInputs
+        }
