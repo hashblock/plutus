@@ -351,7 +351,7 @@ pangramContractSerialization = do
 --     let actual :: Value Observation
 --         actual = AvailableMoney (mkRole "alice") (Token (Val.currencySymbol "00010aff") (Val.tokenName "ÚSD©"))
 --     putStrLn $ show actual
---     show actual @=? "AvailableMoney \"alice\" (Token \"00010aff\" \"ÚSD©\")"
+--    show actual @=? "AvailableMoney \"alice\" (Token \"00010aff\" \"ÚSD©\")"
 
 
 stateSerialization :: IO ()
