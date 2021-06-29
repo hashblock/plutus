@@ -24,7 +24,7 @@ import InputField.Types (State) as InputField
 import InputField.Types (inputErrorToString)
 import InputField.View (renderInput)
 import Marlowe.Extended (contractTypeInitials)
-import Marlowe.Extended.Metadata (MetaData, _contractName, _metaData)
+import Marlowe.Extended.Metadata (MetaData, _contractName, _metaData, _valueParameterDescription)
 import Marlowe.Market (contractTemplates)
 import Marlowe.PAB (contractCreationFee)
 import Marlowe.Semantics (Assets, Slot, TokenName)
@@ -223,7 +223,13 @@ parameterInputs currentSlot metaData templateContent slotContentStrings accessib
 
   valueInput index (key /\ parameterValue) =
     let
-      description = fromMaybe "no description available" $ lookup key metaData.valueParameterDescriptions
+      description =
+        fromMaybe "no description available"
+          ( case Map.lookup key metaData.valueParameterInfo of
+              Just { valueParameterDescription: description }
+                | trim description /= "" -> Just description
+              _ -> Nothing
+          )
 
       mParameterError = valueError parameterValue
     in
