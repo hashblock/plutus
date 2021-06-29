@@ -16,9 +16,11 @@ in different situations without cluttering the code that goes on-chain
 module Language.Marlowe.Extended ( module Language.Marlowe.Extended
                                  , module Language.Marlowe.Pretty
                                  , ada, adaSymbol, adaToken
+                                 , currencySymbol, tokenName
                                  , S.AccountId, S.Bound(..), S.ChoiceId(..)
-                                 , S.ChoiceName, S.ChosenNum, S.Party(..)
-                                 , S.SlotInterval, S.Token(..), S.ValueId(..)
+                                 , S.ChoiceName, S.ChosenNum, S.Party(..), S.mkRole
+                                 , S.SlotInterval, S.Token(..), S.ValueId(..), S.valueId
+                                 , PlutusTx.fromHaskellByteString, S.mkPubKeyHash
                                  , (%)
                                  ) where
 
@@ -28,6 +30,8 @@ import           Language.Marlowe.Pretty    (Pretty (..), pretty)
 import qualified Language.Marlowe.Semantics as S
 import           Language.Marlowe.Util      (ada)
 import           Ledger.Ada                 (adaSymbol, adaToken)
+import           Ledger.Value               (currencySymbol, tokenName)
+import qualified PlutusTx.ByteString        as PlutusTx
 import           Text.PrettyPrint.Leijen    (parens, text)
 
 

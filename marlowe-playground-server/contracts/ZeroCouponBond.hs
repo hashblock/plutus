@@ -11,8 +11,8 @@ discountedPrice = ConstantParam "Discounted price"
 notionalPrice = ConstantParam "Notional price"
 
 investor, issuer :: Party
-investor = Role "Investor"
-issuer = Role "Issuer"
+investor = mkRole "Investor"
+issuer = mkRole "Issuer"
 
 initialExchange, maturityExchangeTimeout :: Timeout
 initialExchange = SlotParam "Initial exchange deadline"

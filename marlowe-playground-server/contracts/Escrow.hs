@@ -12,9 +12,9 @@ explicitRefunds :: Bool
 explicitRefunds = False
 
 seller, buyer, arbiter :: Party
-buyer = Role "Buyer"
-seller = Role "Seller"
-arbiter = Role "Arbiter"
+buyer = mkRole "Buyer"
+seller = mkRole "Seller"
+arbiter = mkRole "Arbiter"
 
 price :: Value
 price = ConstantParam "Price"
@@ -59,22 +59,22 @@ refundSeller
 contract :: Contract
 contract = deposit depositTimeout Close $
            choices disputeTimeout buyer refundSeller
-              [ (0, "Everything is alright"
+              [ (0, fromHaskellByteString "Everything is alright"
                 , refundSeller
                 )
-              , (1, "Report problem"
+              , (1, fromHaskellByteString "Report problem"
                 , sellerToBuyer $
                   choices answerTimeout seller refundBuyer
-                     [ (1, "Confirm problem"
+                     [ (1, fromHaskellByteString "Confirm problem"
                        , refundBuyer
                        )
-                     , (0, "Dispute problem"
+                     , (0, fromHaskellByteString "Dispute problem"
                        , choices arbitrageTimeout arbiter refundBuyer
-                            [ (0, "Dismiss claim"
+                            [ (0, fromHaskellByteString "Dismiss claim"
                               , paySeller
                                 Close
                               )
-                            , (1, "Confirm problem"
+                            , (1, fromHaskellByteString "Confirm problem"
                               , refundBuyer
                               )
                             ]

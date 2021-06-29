@@ -13,9 +13,9 @@ explicitRefunds :: Bool
 explicitRefunds = False
 
 party, counterparty, oracle :: Party
-party = Role "Party"
-counterparty = Role "Counterparty"
-oracle = Role "Oracle"
+party = mkRole "Party"
+counterparty = mkRole "Counterparty"
+oracle = mkRole "Oracle"
 
 depositAmount :: Integer
 depositAmount = 100_000_000
@@ -25,12 +25,12 @@ deposit = Constant depositAmount
 doubleDeposit = Constant (depositAmount * 2)
 
 priceBeginning, priceEnd :: ChoiceId
-priceBeginning = ChoiceId "Price at beginning" oracle
-priceEnd = ChoiceId "Price at end" oracle
+priceBeginning = ChoiceId (fromHaskellByteString "Price at beginning") oracle
+priceEnd = ChoiceId (fromHaskellByteString "Price at end") oracle
 
 decreaseInPrice, increaseInPrice :: ValueId
-decreaseInPrice = "Decrease in price"
-increaseInPrice = "Increase in price"
+decreaseInPrice = valueId "Decrease in price"
+increaseInPrice = valueId "Increase in price"
 
 initialDeposit :: Party -> Timeout -> Contract -> Contract -> Contract
 initialDeposit by timeout timeoutContinuation continuation =

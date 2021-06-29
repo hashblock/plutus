@@ -12,9 +12,9 @@ explicitRefunds :: Bool
 explicitRefunds = False
 
 seller, buyer, burnAddress :: Party
-buyer = Role "Buyer"
-seller = Role "Seller"
-burnAddress = PK "0000000000000000000000000000000000000000000000000000000000000000"
+buyer = mkRole "Buyer"
+seller = mkRole "Seller"
+burnAddress = mkPubKeyHash "0000000000000000000000000000000000000000000000000000000000000000"
 
 price, collateral :: Value
 price = ConstantParam "Price"
@@ -86,16 +86,16 @@ contract = depositCollateral seller sellerCollateralTimeout Close $
            depositCollateral buyer buyerCollateralTimeout (refundSellerCollateral Close) $
            deposit depositTimeout (refundCollaterals Close) $
            choices disputeTimeout buyer (refundCollaterals refundSeller)
-              [ (0, "Everything is alright"
+              [ (0, fromHaskellByteString "Everything is alright"
                 , refundCollaterals refundSeller
                 )
-              , (1, "Report problem"
+              , (1, fromHaskellByteString "Report problem"
                 , sellerToBuyer $
                   choices answerTimeout seller (refundCollaterals refundBuyer)
-                     [ (1, "Confirm problem"
+                     [ (1, fromHaskellByteString "Confirm problem"
                        , refundCollaterals refundBuyer
                        )
-                     , (0, "Dispute problem"
+                     , (0, fromHaskellByteString "Dispute problem"
                        , burnCollaterals refundBuyer
                        )
                      ]

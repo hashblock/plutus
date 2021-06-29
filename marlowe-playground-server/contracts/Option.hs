@@ -10,25 +10,25 @@ contract :: Contract
 contract = When
     [Case
         (Deposit
-            (Role "party")
-            (Role "party")
-            (Token "" "ada")
+            (mkRole "party")
+            (mkRole "party")
+            (Token (currencySymbol "") (tokenName "ada"))
             (Constant 1000)
         )
         (When
             [Case
                 (Deposit
-                    (Role "counterparty")
-                    (Role "counterparty")
-                    (Token "" "bitcoin")
+                    (mkRole "counterparty")
+                    (mkRole "counterparty")
+                    (Token (currencySymbol "") (tokenName "bitcoin"))
                     (Constant 1)
                 )
                 (When
                     [Case
                         (Choice
                             (ChoiceId
-                                "exercise"
-                                (Role "party")
+                                (fromHaskellByteString "exercise")
+                                (mkRole "party")
                             )
                             [Bound 0 1]
                         )
@@ -36,28 +36,28 @@ contract = When
                             (ValueEQ
                                 (ChoiceValue
                                     (ChoiceId
-                                        "exercise"
-                                        (Role "party")
+                                        (fromHaskellByteString "exercise")
+                                        (mkRole "party")
                                     ))
                                 (Constant 1)
                             )
                             (Pay
-                                (Role "counterparty")
-                                (Party (Role "party"))
-                                (Token "" "bitcoin")
+                                (mkRole "counterparty")
+                                (Party (mkRole "party"))
+                                (Token (currencySymbol "") (tokenName "bitcoin"))
                                 (Constant 1)
                                 (Pay
-                                    (Role "party")
-                                    (Party (Role "counterparty"))
-                                    (Token "" "ada")
+                                    (mkRole "party")
+                                    (Party (mkRole "counterparty"))
+                                    (Token (currencySymbol "") (tokenName "ada"))
                                     (Constant 1000)
                                     Close
                                 )
                             )
                             (Pay
-                                (Role "party")
-                                (Party (Role "counterparty"))
-                                (Token "" "ada")
+                                (mkRole "party")
+                                (Party (mkRole "counterparty"))
+                                (Token (currencySymbol "") (tokenName "ada"))
                                 (Constant 100)
                                 Close
                             )

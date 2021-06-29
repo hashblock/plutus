@@ -22,7 +22,7 @@ adaDepositTimeout = SlotParam "Timeout for Ada deposit"
 dollarDepositTimeout = SlotParam "Timeout for dollar deposit"
 
 dollars :: Token
-dollars = Token "85bb65" "dollar"
+dollars = Token (currencySymbol "85bb65") (tokenName "dollar")
 
 data SwapParty = SwapParty { party    :: Party
                            , currency :: Token
@@ -30,11 +30,11 @@ data SwapParty = SwapParty { party    :: Party
                            }
 
 adaProvider, dollarProvider :: SwapParty
-adaProvider = SwapParty { party = Role "Ada provider"
+adaProvider = SwapParty { party = mkRole "Ada provider"
                         , currency = ada
                         , amount = amountOfLovelace
                         }
-dollarProvider = SwapParty { party = Role "Dollar provider"
+dollarProvider = SwapParty { party = mkRole "Dollar provider"
                            , currency = dollars
                            , amount = amountOfDollars
                            }

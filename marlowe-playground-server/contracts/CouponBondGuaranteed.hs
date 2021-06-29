@@ -12,9 +12,9 @@ explicitRefunds :: Bool
 explicitRefunds = False
 
 guarantor, investor, issuer :: Party
-guarantor = Role "Guarantor"
-investor = Role "Investor"
-issuer = Role "Issuer"
+guarantor = mkRole "Guarantor"
+investor = mkRole "Investor"
+issuer = mkRole "Issuer"
 
 principal, instalment :: Value
 principal = ConstantParam "Principal"

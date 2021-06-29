@@ -97,6 +97,9 @@ data Party = PK PubKeyHash | Role TokenName
   deriving stock (Generic,Haskell.Eq,Haskell.Ord)
   deriving anyclass (Pretty)
 
+mkPubKeyHash :: BS.ByteString -> Party
+mkPubKeyHash = PK . PubKeyHash . fromHaskellByteString
+
 mkRole :: BS.ByteString -> Party
 mkRole = Role . tokenName
 
