@@ -4,15 +4,16 @@
 {-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns -fno-warn-name-shadowing -fno-warn-unused-do-bind #-}
 module Spec.Marlowe.Common where
 
-import           Data.Map.Strict  (Map)
+import           Data.Map.Strict     (Map)
 
 import           Language.Marlowe
-import           Ledger           (pubKeyHash)
+import           Ledger              (pubKeyHash)
 import qualified Ledger
-import           Ledger.Value     (CurrencySymbol (..), TokenName (..))
-import qualified PlutusTx.Ratio   as P
+import           Ledger.Value        (currencySymbol, tokenName)
+import qualified PlutusTx.ByteString as P
+import qualified PlutusTx.Ratio      as P
 import           Test.QuickCheck
-import           Wallet           (PubKey (..))
+import           Wallet              (PubKey (..))
 import           Wallet.Emulator
 
 newtype MarloweScenario = MarloweScenario { mlInitialBalances :: Map PubKey Ledger.Value }
@@ -26,18 +27,18 @@ positiveAmount = choose (1, 100)
 
 
 partyGen :: Gen Party
-partyGen = oneof [ return $ Role "alice"
-                 , return $ Role "bob"
+partyGen = oneof [ return $ mkRole "alice"
+                 , return $ mkRole "bob"
                  , return $ PK (pubKeyHash "6361726f6c")
                  ]
 
 
 shrinkParty :: Party -> [Party]
 shrinkParty party = case party of
-    PK _         -> [Role "alice", Role "bob"]
-    Role "bob"   -> [Role "alice"]
-    Role "alice" -> []
-    _            -> []
+    PK _                            -> [mkRole "alice", mkRole "bob"]
+    Role b | b == tokenName "bob"   -> [mkRole "alice"]
+    Role b | b == tokenName "alice" -> []
+    _                               -> []
 
 
 payeeGen :: Gen Payee
@@ -52,14 +53,14 @@ shrinkPayee (Party party)   = [Party x | x <- shrinkParty party]
 
 
 tokenGen :: Gen Token
-tokenGen = oneof [ return $ Token "" ""
-                 , return $ Token "424954" "434f494e"
+tokenGen = oneof [ return $ Token (currencySymbol "") (tokenName "")
+                 , return $ Token (currencySymbol "424954") (tokenName "434f494e")
                  ]
 
 
 shrinkToken :: Token -> [Token]
-shrinkToken (Token "" "") = []
-shrinkToken (Token _ _)   = [Token "" ""]
+shrinkToken (Token cs tn) | cs == currencySymbol "" && tn == tokenName "" = []
+shrinkToken (Token _ _)   = [Token (currencySymbol "") (tokenName "")]
 
 
 simpleIntegerGen :: Gen Integer
@@ -85,25 +86,25 @@ choiceIdGen = do choName <- oneof [ return "first"
                                   , return "second"
                                   ]
                  chooser <- partyGen
-                 return $ ChoiceId choName chooser
+                 return $ ChoiceId (P.fromHaskellByteString choName) chooser
 
 
 shrinkChoiceId :: ChoiceId -> [ChoiceId]
-shrinkChoiceId (ChoiceId "second" chooser) = ChoiceId "first" chooser
+shrinkChoiceId (ChoiceId bs chooser) | bs == P.fromHaskellByteString "second" = ChoiceId "first" chooser
                                             :[ChoiceId "second" x | x <- shrinkParty chooser]
-shrinkChoiceId (ChoiceId "first" chooser) = [ChoiceId "first" x | x <- shrinkParty chooser]
+shrinkChoiceId (ChoiceId bs chooser) | bs == P.fromHaskellByteString "first" = [ChoiceId "first" x | x <- shrinkParty chooser]
 shrinkChoiceId _ = []
 
 
 valueIdGen :: Gen ValueId
-valueIdGen = oneof [ return "alpha"
-                   , return "beta"
+valueIdGen = oneof [ return $ valueId "alpha"
+                   , return $ valueId "beta"
                    ]
 
 
 shrinkValueId :: ValueId -> [ValueId]
-shrinkValueId "beta"  = ["alpha"]
-shrinkValueId "alpha" = []
+shrinkValueId b | b == valueId "beta" = [ valueId "alpha" ]
+shrinkValueId b | b == valueId "alpha" = []
 shrinkValueId _       = []
 
 
@@ -331,15 +332,15 @@ pangramContract :: Contract
 pangramContract = let
     alicePk = PK $ pubKeyHash $ walletPubKey $ Wallet 1
     aliceAcc = alicePk
-    bobRole = Role "Bob"
+    bobRole = mkRole "Bob"
     constant = Constant 100
-    choiceId = ChoiceId "choice" alicePk
-    token = Token (CurrencySymbol "aa") (TokenName "name")
+    choiceId = ChoiceId (P.fromHaskellByteString "choice") alicePk
+    token = Token (currencySymbol "aa") (tokenName "name")
     valueExpr = AddValue constant (SubValue constant (NegValue constant))
     in Assert TrueObs $ When
         [ Case (Deposit aliceAcc alicePk ada valueExpr)
-            (Let (ValueId "x") valueExpr
-                (Pay aliceAcc (Party bobRole) ada (UseValue (ValueId "x")) Close))
+            (Let (valueId "x") valueExpr
+                (Pay aliceAcc (Party bobRole) ada (UseValue (valueId "x")) Close))
         , Case (Choice choiceId [Bound 0 1, Bound 10 20])
             (If (ChoseSomething choiceId `OrObs` (ChoiceValue choiceId `ValueEQ` Scale (1 % 10) constant))
                 (Pay aliceAcc (Account aliceAcc) token (AvailableMoney aliceAcc token) Close)

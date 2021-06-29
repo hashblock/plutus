@@ -48,6 +48,7 @@ import           Control.Newtype.Generics (Newtype)
 import qualified Data.Aeson               as JSON
 import qualified Data.Aeson.Extras        as JSON
 import           Data.Aeson.Types         hiding (Error, Value)
+import qualified Data.ByteString          as BS
 import qualified Data.Foldable            as F
 import           Data.Scientific          (Scientific, floatingOrInteger)
 import           Data.Text                (pack)
@@ -55,7 +56,7 @@ import           Data.Text.Encoding       as Text (decodeUtf8, encodeUtf8)
 import           Deriving.Aeson
 import           Language.Marlowe.Pretty  (Pretty (..))
 import           Ledger                   (PubKeyHash (..), Slot (..), ValidatorHash)
-import           Ledger.Value             (CurrencySymbol (..), TokenName (..))
+import           Ledger.Value             (CurrencySymbol (..), TokenName (..), tokenName)
 import qualified Ledger.Value             as Val
 import           PlutusTx                 (makeIsDataIndexed)
 import           PlutusTx.AssocMap        (Map)
@@ -96,6 +97,9 @@ data Party = PK PubKeyHash | Role TokenName
   deriving stock (Generic,Haskell.Eq,Haskell.Ord)
   deriving anyclass (Pretty)
 
+mkRole :: BS.ByteString -> Party
+mkRole = Role . tokenName
+
 instance Haskell.Show Party where
   showsPrec p (PK pk) = Haskell.showParen (p Haskell.>= 11) $ Haskell.showString "PK \""
                                               . Haskell.showsPrec 11 pk
@@ -128,7 +132,7 @@ data Token = Token CurrencySymbol TokenName
 
 instance Haskell.Show Token where
   showsPrec p (Token cs tn) =
-    Haskell.showParen (p Haskell.>= 11) (Haskell.showString $ "Token \"" Haskell.++ Haskell.show cs Haskell.++ "\" " Haskell.++ Haskell.show tn)
+    Haskell.showParen (p Haskell.>= 11) (Haskell.showString $ "Token " Haskell.++ Haskell.show (unCurrencySymbol cs) Haskell.++ " " Haskell.++ Haskell.show (unTokenName tn))
 
 {-| Values, as defined using Let ar e identified by name,
     and can be used by 'UseValue' construct.
@@ -137,6 +141,8 @@ newtype ValueId = ValueId ByteString
   deriving stock (Haskell.Show,Haskell.Eq,Haskell.Ord,Generic)
   deriving anyclass (Newtype)
 
+valueId :: BS.ByteString -> ValueId
+valueId = ValueId . fromHaskellByteString
 
 {-| Values include some quantities that change with time,
     including “the slot interval”, “the current balance of an account (in Lovelace)”,
