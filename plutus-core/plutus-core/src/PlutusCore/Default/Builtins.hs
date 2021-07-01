@@ -46,6 +46,9 @@ data DefaultFun
     | QuotientInteger
     | RemainderInteger
     | ModInteger
+    | ModExpInteger
+    | ModExpSecureInteger
+    | ModInverseInteger
     | LessThanInteger
     | LessThanEqInteger
     | GreaterThanInteger
