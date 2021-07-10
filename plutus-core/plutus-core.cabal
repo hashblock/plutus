@@ -277,6 +277,7 @@ library
         hashable,
         hedgehog >=1.0,
         integer-gmp -any,
+        hgmp -any,
         lazy-search -any,
         lens -any,
         megaparsec -any,

@@ -48,6 +48,7 @@ builtinCostModelNames = BuiltinCostModelBase
   , paramMultiplyInteger      = "multiplyIntegerModel"
   , paramDivideInteger        = "divideIntegerModel"
   , paramModInteger           = "modIntegerModel"
+  , paramPowModInteger        = "powModIntegerModel"
   , paramQuotientInteger      = "quotientIntegerModel"
   , paramRemainderInteger     = "remainderIntegerModel"
   , paramEqInteger            = "eqIntegerModel"
@@ -94,6 +95,7 @@ createBuiltinCostModel =
     paramQuotientInteger      <- getParams quotientInteger      paramQuotientInteger
     paramRemainderInteger     <- getParams remainderInteger     paramRemainderInteger
     paramModInteger           <- getParams modInteger           paramModInteger
+    paramPowModInteger        <- getParams powModInteger        paramPowModInteger
     paramLessThanInteger      <- getParams lessThanInteger      paramLessThanInteger
     paramGreaterThanInteger   <- getParams greaterThanInteger   paramGreaterThanInteger
     paramLessThanEqInteger    <- getParams lessThanEqInteger    paramLessThanEqInteger
@@ -233,6 +235,16 @@ divideInteger cpuModelR = do
 
 modInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelTwoArguments)
 modInteger = divideInteger
+
+powModInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelThreeArguments)
+powModInteger cpuModelR = do
+  -- x^e % m
+  -- GMP requires modular exponentiation to have log(n) time where n = #bits(e)
+  cpuModel <- readModelAddedSizes cpuModelR
+  -- GMP requires division to have ((x^2)*(x^2)) % m size for each multiplication.
+  -- m + m
+  let memModel = ModelThreeArgumentsAddedSizes $ ModelAddedSizes 0 1
+  pure $ CostingFun (ModelThreeArgumentsAddedSizes cpuModel) memModel
 
 quotientInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelTwoArguments)
 quotientInteger cpuModelR = do

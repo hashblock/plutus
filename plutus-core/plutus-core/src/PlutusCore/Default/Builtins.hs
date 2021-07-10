@@ -1,17 +1,18 @@
 {-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
 
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveAnyClass        #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE InstanceSigs          #-}
-{-# LANGUAGE LambdaCase            #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE DeriveAnyClass           #-}
+{-# LANGUAGE FlexibleInstances        #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
+{-# LANGUAGE InstanceSigs             #-}
+{-# LANGUAGE LambdaCase               #-}
+{-# LANGUAGE MultiParamTypeClasses    #-}
+{-# LANGUAGE OverloadedStrings        #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE TypeApplications         #-}
+{-# LANGUAGE TypeFamilies             #-}
+{-# LANGUAGE TypeOperators            #-}
+{-# LANGUAGE UndecidableInstances     #-}
 
 module PlutusCore.Default.Builtins where
 
@@ -38,6 +39,22 @@ import           Flat
 import           Flat.Decoder
 import           Flat.Encoder                                   as Flat
 
+import           Foreign.Ptr                                    (Ptr (..))
+import           Numeric.GMP.Raw.Safe                           (mpz_powm)
+import           Numeric.GMP.Types                              (MPZ)
+import           Numeric.GMP.Utils                              (withInInteger, withOutInteger_)
+import           System.IO.Unsafe                               (unsafePerformIO)
+
+-- Modular exponentiation function uses GMP FFI
+powMod :: Integer -> Integer -> Integer -> Integer
+powMod a e m =
+  unsafePerformIO $
+    withOutInteger_ $ \rop ->
+      withInInteger a $ \aop ->
+        withInInteger e $ \eop ->
+            withInInteger m $ \mop ->
+                mpz_powm rop aop eop mop
+
 -- See Note [Pattern matching on built-in types].
 -- TODO: should we have the commonest builtins at the front to have more compact encoding?
 -- | Default built-in functions.
@@ -49,6 +66,7 @@ data DefaultFun
     | QuotientInteger
     | RemainderInteger
     | ModInteger
+    | PowModInteger
     | LessThanInteger
     | LessThanEqualsInteger
     | GreaterThanInteger
@@ -109,9 +127,16 @@ instance ExMemoryUsage DefaultFun where
 -- | Turn a function into another function that returns 'EvaluationFailure' when its second argument
 -- is 0 or calls the original function otherwise and wraps the result in 'EvaluationSuccess'.
 -- Useful for correctly handling `div`, `mod`, etc.
-nonZeroArg :: (Integer -> Integer -> Integer) -> Integer -> Integer -> EvaluationResult Integer
-nonZeroArg _ _ 0 = EvaluationFailure
-nonZeroArg f x y = EvaluationSuccess $ f x y
+nonZeroSecondArg :: (Integer -> Integer -> Integer) -> Integer -> Integer -> EvaluationResult Integer
+nonZeroSecondArg _ _ 0 = EvaluationFailure
+nonZeroSecondArg f x y = EvaluationSuccess $ f x y
+
+-- | Turn a function into another function that returns 'EvaluationFailure' when its third argument
+-- is 0 or calls the original function otherwise and wraps the result in 'EvaluationSuccess'.
+-- Useful for correctly handling `powMod`, etc.
+nonZeroThirdArg :: (Integer -> Integer -> Integer -> Integer) -> Integer -> Integer -> Integer -> EvaluationResult Integer
+nonZeroThirdArg _ _ _ 0 = EvaluationFailure
+nonZeroThirdArg f x y z = EvaluationSuccess $ f x y z
 
 instance uni ~ DefaultUni => ToBuiltinMeaning uni DefaultFun where
     type CostingPart uni DefaultFun = BuiltinCostModel
@@ -132,20 +157,24 @@ instance uni ~ DefaultUni => ToBuiltinMeaning uni DefaultFun where
             (runCostingFunTwoArguments . paramMultiplyInteger)
     toBuiltinMeaning DivideInteger =
         makeBuiltinMeaning
-            (nonZeroArg div)
+            (nonZeroSecondArg div)
             (runCostingFunTwoArguments . paramDivideInteger)
     toBuiltinMeaning QuotientInteger =
         makeBuiltinMeaning
-            (nonZeroArg quot)
+            (nonZeroSecondArg quot)
             (runCostingFunTwoArguments . paramQuotientInteger)
     toBuiltinMeaning RemainderInteger =
         makeBuiltinMeaning
-            (nonZeroArg rem)
+            (nonZeroSecondArg rem)
             (runCostingFunTwoArguments . paramRemainderInteger)
     toBuiltinMeaning ModInteger =
         makeBuiltinMeaning
-            (nonZeroArg mod)
+            (nonZeroSecondArg mod)
             (runCostingFunTwoArguments . paramModInteger)
+    toBuiltinMeaning PowModInteger =
+        makeBuiltinMeaning
+            (nonZeroThirdArg powMod)
+            (runCostingFunThreeArguments . paramPowModInteger)
     toBuiltinMeaning LessThanInteger =
         makeBuiltinMeaning
             ((<) @Integer)
@@ -386,6 +415,7 @@ instance Serialise DefaultFun where
               EqualsData               -> 46
               ChooseData               -> 47
               ChooseUnit               -> 48
+              PowModInteger            -> 49
 
     decode = go =<< decodeWord
         where go 0  = pure AddInteger
@@ -437,6 +467,7 @@ instance Serialise DefaultFun where
               go 46 = pure EqualsData
               go 47 = pure ChooseData
               go 48 = pure ChooseUnit
+              go 49 = pure PowModInteger
               go _  = fail "Failed to decode BuiltinName"
 
 -- It's set deliberately to give us "extra room" in the binary format to add things without running
@@ -504,6 +535,7 @@ instance Flat DefaultFun where
               EqualsData               -> 46
               ChooseData               -> 47
               ChooseUnit               -> 48
+              PowModInteger            -> 49
 
     decode = go =<< decodeBuiltin
         where go 0  = pure AddInteger
@@ -555,6 +587,7 @@ instance Flat DefaultFun where
               go 46 = pure EqualsData
               go 47 = pure ChooseData
               go 48 = pure ChooseUnit
+              go 49 = pure PowModInteger
               go _  = fail "Failed to decode BuiltinName"
 
     size _ n = n + builtinTagWidth
