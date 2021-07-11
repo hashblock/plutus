@@ -39,9 +39,7 @@ import           Flat
 import           Flat.Decoder
 import           Flat.Encoder                                   as Flat
 
-import           Foreign.Ptr                                    (Ptr (..))
 import           Numeric.GMP.Raw.Safe                           (mpz_powm)
-import           Numeric.GMP.Types                              (MPZ)
 import           Numeric.GMP.Utils                              (withInInteger, withOutInteger_)
 import           System.IO.Unsafe                               (unsafePerformIO)
 

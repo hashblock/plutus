@@ -9,6 +9,7 @@ import           Hedgehog            (MonadGen, Property, annotateShow, assert, 
 import qualified Hedgehog.Gen        as Gen
 import qualified Hedgehog.Range      as Range
 import           PlutusCore.Data     (Data (..))
+import           PlutusTx.Builtins   (powModInteger)
 import           PlutusTx.Ratio      (Rational, denominator, numerator, (%))
 import           PlutusTx.Sqrt       (Sqrt (..), isqrt, rsqrt)
 import           Prelude             hiding (Rational)
@@ -20,7 +21,8 @@ main = defaultMain tests
 
 tests :: TestTree
 tests = testGroup "plutus-tx" [
-    serdeTests
+    powModIntegerTests
+    , serdeTests
     , sqrtTests
     ]
 
@@ -118,3 +120,37 @@ genData =
         , List <$> constructorArgList
         , Map <$> kvMapList
         ]
+
+powModIntegerTests :: TestTree
+powModIntegerTests = testGroup "Integer modular exponentation tests"
+  [ testProperty "2^3 % 5 = 3" powModIntegerPositiveCheck
+  , testProperty "0^0 % 1 = 0" powModIntegerZeroBaseZeroExponentCheck
+  , testProperty "-2^3 % 5 = 2" powModIntegerNegativeBaseCheck
+  ]
+
+powModIntegerPositiveCheck :: Property
+powModIntegerPositiveCheck = property $ do
+  let a :: Integer = 2
+  let e :: Integer = 3
+  let m :: Integer = 5
+  let r :: Integer = 3
+
+  assert (r == powModInteger a e m)
+
+powModIntegerZeroBaseZeroExponentCheck :: Property
+powModIntegerZeroBaseZeroExponentCheck = property $ do
+  let a :: Integer = 0
+  let e :: Integer = 0
+  let m :: Integer = 1
+  let r :: Integer = 0
+
+  assert (r == powModInteger a e m)
+
+powModIntegerNegativeBaseCheck :: Property
+powModIntegerNegativeBaseCheck = property $ do
+  let a :: Integer = -2
+  let e :: Integer = 3
+  let m :: Integer = 5
+  let r :: Integer = 2
+
+  assert (r == powModInteger a e m)
