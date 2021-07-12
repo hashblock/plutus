@@ -22,6 +22,7 @@ import           PlutusCore.Default.Universe
 import           PlutusCore.Evaluation.Machine.BuiltinCostModel
 import           PlutusCore.Evaluation.Machine.ExMemory
 import           PlutusCore.Evaluation.Result
+import           PlutusCore.Modular                             (invert, powMod)
 import           PlutusCore.Pretty
 
 import           Codec.CBOR.Decoding
@@ -39,20 +40,6 @@ import           Flat
 import           Flat.Decoder
 import           Flat.Encoder                                   as Flat
 
-import           Numeric.GMP.Raw.Safe                           (mpz_powm)
-import           Numeric.GMP.Utils                              (withInInteger, withOutInteger_)
-import           System.IO.Unsafe                               (unsafePerformIO)
-
--- Modular exponentiation function uses GMP FFI
-powMod :: Integer -> Integer -> Integer -> Integer
-powMod a e m =
-  unsafePerformIO $
-    withOutInteger_ $ \rop ->
-      withInInteger a $ \aop ->
-        withInInteger e $ \eop ->
-            withInInteger m $ \mop ->
-                mpz_powm rop aop eop mop
-
 -- See Note [Pattern matching on built-in types].
 -- TODO: should we have the commonest builtins at the front to have more compact encoding?
 -- | Default built-in functions.
@@ -65,6 +52,7 @@ data DefaultFun
     | RemainderInteger
     | ModInteger
     | PowModInteger
+    | InvertInteger
     | LessThanInteger
     | LessThanEqualsInteger
     | GreaterThanInteger
@@ -179,6 +167,10 @@ instance uni ~ DefaultUni => ToBuiltinMeaning uni DefaultFun where
         makeBuiltinMeaning
             (nonZeroThirdArg powMod)
             (runCostingFunThreeArguments . paramPowModInteger)
+    toBuiltinMeaning InvertInteger =
+        makeBuiltinMeaning
+            (nonZeroSecondArg invert)
+            (runCostingFunTwoArguments . paramInvertInteger)
     toBuiltinMeaning LessThanInteger =
         makeBuiltinMeaning
             ((<) @Integer)
@@ -459,6 +451,7 @@ instance Serialise DefaultFun where
               MkNilPairData            -> 51
               MkCons                   -> 52
               PowModInteger            -> 53
+              InvertInteger            -> 54
 
     decode = go =<< decodeWord
         where go 0  = pure AddInteger
@@ -515,6 +508,7 @@ instance Serialise DefaultFun where
               go 51 = pure MkNilPairData
               go 52 = pure MkCons
               go 53 = pure PowModInteger
+              go 54 = pure InvertInteger
               go _  = fail "Failed to decode BuiltinName"
 
 -- It's set deliberately to give us "extra room" in the binary format to add things without running
@@ -587,6 +581,7 @@ instance Flat DefaultFun where
               MkNilPairData            -> 51
               MkCons                   -> 52
               PowModInteger            -> 53
+              InvertInteger            -> 54
 
     decode = go =<< decodeBuiltin
         where go 0  = pure AddInteger
@@ -643,6 +638,7 @@ instance Flat DefaultFun where
               go 51 = pure MkNilPairData
               go 52 = pure MkCons
               go 53 = pure PowModInteger
+              go 54 = pure InvertInteger
               go _  = fail "Failed to decode BuiltinName"
 
     size _ n = n + builtinTagWidth

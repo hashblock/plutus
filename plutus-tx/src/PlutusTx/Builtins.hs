@@ -23,6 +23,7 @@ module PlutusTx.Builtins (
                                 , divideInteger
                                 , modInteger
                                 , powModInteger
+                                , invertInteger
                                 , quotientInteger
                                 , remainderInteger
                                 , greaterThanInteger
@@ -149,6 +150,11 @@ modInteger x y = fromBuiltin (BI.modInteger (toBuiltin x) (toBuiltin y))
 -- | Integer modular exponentiation operation.
 powModInteger :: Integer -> Integer -> Integer -> Integer
 powModInteger a e m = fromBuiltin (BI.powModInteger (toBuiltin a) (toBuiltin e) (toBuiltin m))
+
+{-# INLINABLE invertInteger #-}
+-- | Integer modular multiplicative inverse operation.
+invertInteger :: Integer -> Integer -> Integer
+invertInteger a m = fromBuiltin (BI.invertInteger (toBuiltin a) (toBuiltin m))
 
 {-# INLINABLE quotientInteger #-}
 -- | Quotient of two integers.

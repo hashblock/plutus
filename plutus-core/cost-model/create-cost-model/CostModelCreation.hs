@@ -49,6 +49,7 @@ builtinCostModelNames = BuiltinCostModelBase
   , paramDivideInteger        = "divideIntegerModel"
   , paramModInteger           = "modIntegerModel"
   , paramPowModInteger        = "powModIntegerModel"
+  , paramInvertInteger        = "invertIntegerModel"
   , paramQuotientInteger      = "quotientIntegerModel"
   , paramRemainderInteger     = "remainderIntegerModel"
   , paramEqInteger            = "eqIntegerModel"
@@ -96,6 +97,7 @@ createBuiltinCostModel =
     paramRemainderInteger     <- getParams remainderInteger     paramRemainderInteger
     paramModInteger           <- getParams modInteger           paramModInteger
     paramPowModInteger        <- getParams powModInteger        paramPowModInteger
+    paramInvertInteger        <- getParams invertInteger        paramInvertInteger
     paramLessThanInteger      <- getParams lessThanInteger      paramLessThanInteger
     paramGreaterThanInteger   <- getParams greaterThanInteger   paramGreaterThanInteger
     paramLessThanEqInteger    <- getParams lessThanEqInteger    paramLessThanEqInteger
@@ -245,6 +247,15 @@ powModInteger cpuModelR = do
   -- m + m
   let memModel = ModelThreeArgumentsAddedSizes $ ModelAddedSizes 0 1
   pure $ CostingFun (ModelThreeArgumentsAddedSizes cpuModel) memModel
+
+invertInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelTwoArguments)
+invertInteger cpuModelR = do
+  -- a x ≅ 1 (mod m)
+  -- GMP requires modular multiplicative inverse ...
+  cpuModel <- readModelAddedSizes cpuModelR
+  -- GMP requires modular multiplicative inverse ...
+  let memModel = ModelTwoArgumentsAddedSizes $ ModelAddedSizes 0 1
+  pure $ CostingFun (ModelTwoArgumentsAddedSizes cpuModel) memModel
 
 quotientInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelTwoArguments)
 quotientInteger cpuModelR = do

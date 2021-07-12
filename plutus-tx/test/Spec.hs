@@ -9,7 +9,7 @@ import           Hedgehog            (MonadGen, Property, annotateShow, assert, 
 import qualified Hedgehog.Gen        as Gen
 import qualified Hedgehog.Range      as Range
 import           PlutusCore.Data     (Data (..))
-import           PlutusTx.Builtins   (powModInteger)
+import           PlutusTx.Builtins   (invertInteger, powModInteger)
 import           PlutusTx.Ratio      (Rational, denominator, numerator, (%))
 import           PlutusTx.Sqrt       (Sqrt (..), isqrt, rsqrt)
 import           Prelude             hiding (Rational)
@@ -20,11 +20,12 @@ main :: IO ()
 main = defaultMain tests
 
 tests :: TestTree
-tests = testGroup "plutus-tx" [
-    powModIntegerTests
-    , serdeTests
-    , sqrtTests
-    ]
+tests = testGroup "plutus-tx"
+  [ powModIntegerTests
+  , invertIntegerTests
+  , serdeTests
+  , sqrtTests
+  ]
 
 sqrtTests :: TestTree
 sqrtTests = testGroup "isqrt/rsqrt tests"
@@ -154,3 +155,16 @@ powModIntegerNegativeBaseCheck = property $ do
   let r :: Integer = 2
 
   assert (r == powModInteger a e m)
+
+invertIntegerTests :: TestTree
+invertIntegerTests = testGroup "Integer modular multiplicative inverse tests"
+  [ testProperty "inverse 3 modulo 11 = 4" invertIntegerCheck
+  ]
+
+invertIntegerCheck :: Property
+invertIntegerCheck = property $ do
+  let a :: Integer = 3
+  let m :: Integer = 11
+  let r :: Integer = 4
+
+  assert (r == invertInteger a m)

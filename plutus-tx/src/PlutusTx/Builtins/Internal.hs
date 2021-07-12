@@ -16,21 +16,8 @@ import qualified Data.ByteString.Hash as Hash
 import           Data.Coerce
 import           Data.Maybe           (fromMaybe)
 import qualified PlutusCore.Data      as PLC
+import           PlutusTx.Modular     (invert, powMod)
 import           PlutusTx.Utils
-
-import           Numeric.GMP.Raw.Safe (mpz_powm)
-import           Numeric.GMP.Utils    (withInInteger, withOutInteger_)
-import           System.IO.Unsafe     (unsafePerformIO)
-
--- Modular exponentiation function uses GMP FFI
-powMod :: forall a. Integral a => a -> a -> a -> Integer
-powMod a e m =
-  unsafePerformIO $
-    withOutInteger_ $ \rop ->
-      withInInteger (toInteger a) $ \aop ->
-        withInInteger (toInteger e) $ \eop ->
-            withInInteger (toInteger m) $ \mop ->
-                mpz_powm rop aop eop mop
 
 {- Note [Builtin name definitions]
 The builtins here have definitions so they can be used in off-chain code too.
@@ -124,6 +111,10 @@ modInteger = coerce (mod @Integer)
 {-# NOINLINE powModInteger #-}
 powModInteger :: BuiltinInteger -> BuiltinInteger -> BuiltinInteger  -> BuiltinInteger
 powModInteger = coerce (powMod @Integer)
+
+{-# NOINLINE invertInteger #-}
+invertInteger :: BuiltinInteger -> BuiltinInteger -> BuiltinInteger
+invertInteger = coerce (invert @Integer)
 
 {-# NOINLINE quotientInteger #-}
 quotientInteger :: BuiltinInteger -> BuiltinInteger -> BuiltinInteger

@@ -61,6 +61,7 @@ data BuiltinCostModelBase f =
     , paramRemainderInteger     :: f ModelTwoArguments
     , paramModInteger           :: f ModelTwoArguments
     , paramPowModInteger        :: f ModelThreeArguments
+    , paramInvertInteger        :: f ModelTwoArguments
     , paramLessThanInteger      :: f ModelTwoArguments
     , paramLessThanEqInteger    :: f ModelTwoArguments
     , paramGreaterThanInteger   :: f ModelTwoArguments
