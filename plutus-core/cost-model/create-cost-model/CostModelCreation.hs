@@ -50,6 +50,7 @@ builtinCostModelNames = BuiltinCostModelBase
   , paramModInteger           = "modIntegerModel"
   , paramPowModInteger        = "powModIntegerModel"
   , paramInvertInteger        = "invertIntegerModel"
+  , paramProbablyPrimeInteger = "probablyPrimeIntegerModel"
   , paramQuotientInteger      = "quotientIntegerModel"
   , paramRemainderInteger     = "remainderIntegerModel"
   , paramEqInteger            = "eqIntegerModel"
@@ -98,6 +99,7 @@ createBuiltinCostModel =
     paramModInteger           <- getParams modInteger           paramModInteger
     paramPowModInteger        <- getParams powModInteger        paramPowModInteger
     paramInvertInteger        <- getParams invertInteger        paramInvertInteger
+    paramProbablyPrimeInteger <- getParams probablyPrimeInteger paramProbablyPrimeInteger
     paramLessThanInteger      <- getParams lessThanInteger      paramLessThanInteger
     paramGreaterThanInteger   <- getParams greaterThanInteger   paramGreaterThanInteger
     paramLessThanEqInteger    <- getParams lessThanEqInteger    paramLessThanEqInteger
@@ -251,9 +253,13 @@ powModInteger cpuModelR = do
 invertInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelTwoArguments)
 invertInteger cpuModelR = do
   -- a x ≅ 1 (mod m)
-  -- GMP requires modular multiplicative inverse ...
   cpuModel <- readModelAddedSizes cpuModelR
-  -- GMP requires modular multiplicative inverse ...
+  let memModel = ModelTwoArgumentsAddedSizes $ ModelAddedSizes 0 1
+  pure $ CostingFun (ModelTwoArgumentsAddedSizes cpuModel) memModel
+
+probablyPrimeInteger :: MonadR m => (SomeSEXP (Region m)) -> m (CostingFun ModelTwoArguments)
+probablyPrimeInteger cpuModelR = do
+  cpuModel <- readModelAddedSizes cpuModelR
   let memModel = ModelTwoArgumentsAddedSizes $ ModelAddedSizes 0 1
   pure $ CostingFun (ModelTwoArgumentsAddedSizes cpuModel) memModel
 

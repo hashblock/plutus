@@ -52,9 +52,9 @@ library
         PlutusTx.List
         PlutusTx.Ord
         PlutusTx.Maybe
-        PlutusTx.Modular
         PlutusTx.Monoid
         PlutusTx.Numeric
+        PlutusTx.NumberTheory
         PlutusTx.Ratio
         PlutusTx.Semigroup
         PlutusTx.Sqrt

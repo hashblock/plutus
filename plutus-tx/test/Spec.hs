@@ -9,7 +9,7 @@ import           Hedgehog            (MonadGen, Property, annotateShow, assert, 
 import qualified Hedgehog.Gen        as Gen
 import qualified Hedgehog.Range      as Range
 import           PlutusCore.Data     (Data (..))
-import           PlutusTx.Builtins   (invertInteger, powModInteger)
+import           PlutusTx.Builtins   (invertInteger, powModInteger, probablyPrimeInteger)
 import           PlutusTx.Ratio      (Rational, denominator, numerator, (%))
 import           PlutusTx.Sqrt       (Sqrt (..), isqrt, rsqrt)
 import           Prelude             hiding (Rational)
@@ -23,6 +23,7 @@ tests :: TestTree
 tests = testGroup "plutus-tx"
   [ powModIntegerTests
   , invertIntegerTests
+  , probablyPrimeTests
   , serdeTests
   , sqrtTests
   ]
@@ -168,3 +169,25 @@ invertIntegerCheck = property $ do
   let r :: Integer = 4
 
   assert (r == invertInteger a m)
+
+probablyPrimeTests :: TestTree
+probablyPrimeTests = testGroup "Integer primality test tests"
+  [ testProperty "num: 3 reps: 15 = 2" definitelyPrimeIntegerCheck
+  , testProperty "num: 8 reps: 15 = 0" definitelyNotPrimeIntegerCheck
+  ]
+
+definitelyPrimeIntegerCheck :: Property
+definitelyPrimeIntegerCheck = property $ do
+  let n :: Integer = 3
+  let l :: Integer = 15
+  let r :: Integer = 2
+
+  assert (r == probablyPrimeInteger n l)
+
+definitelyNotPrimeIntegerCheck :: Property
+definitelyNotPrimeIntegerCheck = property $ do
+  let n :: Integer = 8
+  let l :: Integer = 15
+  let r :: Integer = 0
+
+  assert (r == probablyPrimeInteger n l)

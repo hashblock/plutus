@@ -24,6 +24,7 @@ module PlutusTx.Builtins (
                                 , modInteger
                                 , powModInteger
                                 , invertInteger
+                                , probablyPrimeInteger
                                 , quotientInteger
                                 , remainderInteger
                                 , greaterThanInteger
@@ -155,6 +156,11 @@ powModInteger a e m = fromBuiltin (BI.powModInteger (toBuiltin a) (toBuiltin e) 
 -- | Integer modular multiplicative inverse operation.
 invertInteger :: Integer -> Integer -> Integer
 invertInteger a m = fromBuiltin (BI.invertInteger (toBuiltin a) (toBuiltin m))
+
+{-# INLINABLE probablyPrimeInteger #-}
+-- | Integer primality test operation.
+probablyPrimeInteger :: Integer -> Integer -> Integer
+probablyPrimeInteger a m = fromBuiltin (BI.probablyPrimeInteger (toBuiltin a) (toBuiltin m))
 
 {-# INLINABLE quotientInteger #-}
 -- | Quotient of two integers.

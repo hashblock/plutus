@@ -22,7 +22,7 @@ import           PlutusCore.Default.Universe
 import           PlutusCore.Evaluation.Machine.BuiltinCostModel
 import           PlutusCore.Evaluation.Machine.ExMemory
 import           PlutusCore.Evaluation.Result
-import           PlutusCore.Modular                             (invert, powMod)
+import           PlutusCore.NumberTheory                        (invert, powMod, probablyPrime)
 import           PlutusCore.Pretty
 
 import           Codec.CBOR.Decoding
@@ -53,6 +53,7 @@ data DefaultFun
     | ModInteger
     | PowModInteger
     | InvertInteger
+    | ProbablyPrimeInteger
     | LessThanInteger
     | LessThanEqualsInteger
     | GreaterThanInteger
@@ -171,6 +172,10 @@ instance uni ~ DefaultUni => ToBuiltinMeaning uni DefaultFun where
         makeBuiltinMeaning
             (nonZeroSecondArg invert)
             (runCostingFunTwoArguments . paramInvertInteger)
+    toBuiltinMeaning ProbablyPrimeInteger =
+        makeBuiltinMeaning
+            (nonZeroSecondArg probablyPrime)
+            (runCostingFunTwoArguments . paramProbablyPrimeInteger)
     toBuiltinMeaning LessThanInteger =
         makeBuiltinMeaning
             ((<) @Integer)
@@ -452,6 +457,7 @@ instance Serialise DefaultFun where
               MkCons                   -> 52
               PowModInteger            -> 53
               InvertInteger            -> 54
+              ProbablyPrimeInteger     -> 55
 
     decode = go =<< decodeWord
         where go 0  = pure AddInteger
@@ -509,6 +515,7 @@ instance Serialise DefaultFun where
               go 52 = pure MkCons
               go 53 = pure PowModInteger
               go 54 = pure InvertInteger
+              go 55 = pure ProbablyPrimeInteger
               go _  = fail "Failed to decode BuiltinName"
 
 -- It's set deliberately to give us "extra room" in the binary format to add things without running
@@ -582,6 +589,7 @@ instance Flat DefaultFun where
               MkCons                   -> 52
               PowModInteger            -> 53
               InvertInteger            -> 54
+              ProbablyPrimeInteger     -> 55
 
     decode = go =<< decodeBuiltin
         where go 0  = pure AddInteger
@@ -639,6 +647,7 @@ instance Flat DefaultFun where
               go 52 = pure MkCons
               go 53 = pure PowModInteger
               go 54 = pure InvertInteger
+              go 55 = pure ProbablyPrimeInteger
               go _  = fail "Failed to decode BuiltinName"
 
     size _ n = n + builtinTagWidth
